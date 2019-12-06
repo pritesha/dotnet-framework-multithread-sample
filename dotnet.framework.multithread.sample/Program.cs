@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace dotnet.framework.multithread.sample
@@ -13,33 +14,24 @@ namespace dotnet.framework.multithread.sample
             {
                 var customer = new Customer
                 {
+                    Id = i,
                     Name = "Customer-" + i,
-                    // wait time added just to simulate the asynchronous behaviour
-                    WaitTime = new Random(i).Next(2000, 5000)
                 };
                 customers.Add(customer);
             }
 
-            ProcessCustomersAsync(customers).Wait();
+            customers
+                .AsParallel()
+                .WithDegreeOfParallelism(5)
+                .ForAll(customer =>
+                {
+                    ProcessCustomer(customer);
+                });
         }
 
-        static async Task ProcessCustomersAsync(IReadOnlyCollection<Customer> customers)
+        static void ProcessCustomer(Customer customer)
         {
-            List<Task> tasks = new List<Task>() { };
-            foreach(var customer in customers)
-            {
-                tasks.Add(ProcessCustomerAsync(customer));
-            }
-
-            await Task.WhenAll(tasks);
-        }
-
-        static async Task ProcessCustomerAsync(Customer customer)
-        {
-            Console.WriteLine("Processing {0} started  at {1}", customer.Name, DateTime.Now);
-            // Delay to task to simulate the processing time.
-            await Task.Delay(customer.WaitTime);
-            Console.WriteLine("Processing {0} finished at {1}", customer.Name, DateTime.Now);
+            Console.WriteLine("Processed {0} at {1}", customer.Name, DateTime.Now);
         }
     }
 }
